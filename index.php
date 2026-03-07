@@ -23,6 +23,7 @@
  */
 
 require_once(__DIR__ . '/../../config.php');
+
 require_login();
 require_capability('moodle/site:config', context_system::instance());
 
@@ -31,6 +32,42 @@ $PAGE->set_url(new moodle_url('/local/inactivity_report/index.php'));
 $PAGE->set_title(get_string('pluginname', 'local_inactivity_report'));
 $PAGE->set_heading(get_string('pluginname', 'local_inactivity_report'));
 
+use local_inactivity_report\form\reportform;
+
+$mform = new reportform();
+$report = [];
+$reportlist = [];
+if ($mform->is_cancelled()) {
+    redirect(new moodle_url('/admin/search.php#linkreports'));
+} else if ($data = $mform->get_data()) {
+    $typecourse = $data->type;
+    $lastacces = $data->filterdate;
+    
+    $report = $DB->get_records_sql(
+        "SELECT u.id, u.firstname, u.lastname, u.email, c.fullname AS coursename, FROM_UNIXTIME(ul.timeaccess) AS lastaccess
+        FROM {user} u
+        JOIN {user_lastaccess} ul ON ul.userid = u.id
+        JOIN {course} c ON c.id = ul.courseid
+        WHERE ul.timeaccess < :filterdate AND ul.courseid = :courseid",
+        ['filterdate' => $lastacces, 'courseid' => $typecourse]
+    );
+}
+
+foreach ($report as $record) {
+    $reportlist[] = [
+        'fullname' => $record->firstname." ".$record->lastname,
+        'email' => $record->email,
+        'coursename' => $record->coursename,
+        'lastaccess' => userdate(strtotime($record->lastaccess), get_string('strftimedatetime', 'langconfig')),
+        'dayselapsed' => (int)((time() - $record->timeaccess) / DAYSECS),
+    ];
+}
 echo $OUTPUT->header();
 
+$templatedata = [
+    'backurl' => (new moodle_url('/admin/search.php#linkreports'))->out(false),
+    'reportform' => $mform->render(),
+    'report' => $reportlist ?? [],
+];
+echo $OUTPUT->render_from_template('local_inactivity_report/main', $templatedata);
 echo $OUTPUT->footer();

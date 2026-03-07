@@ -15,19 +15,23 @@
 // along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 /**
- * Plugin strings are defined here.
+ * Access to the database tables for the plugin.
  *
  * @package     local_inactivity_report
- * @category    string
+ * @category    db
  * @copyright   2026 Renzo Medina <medinast30@gmail.com>
  * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 defined('MOODLE_INTERNAL') || die();
 
-$string['pluginname'] = 'Inactivity Report';
-$string['selectedcourse'] = 'Select Course';
-$string['lastaccessbefore'] = 'Last Access Before';
-$string['generate'] = 'Generate Report';
-$string['nousersfound'] = 'No inactive users found for the selected criteria.';
-$string['dayselapsed'] = 'Days Elapsed Since Last Access';
+$capabilities = [
+    'local/inactivity_report:view' => [
+        'captype' => 'read',
+        'contextlevel' => CONTEXT_SYSTEM,
+        'archetypes' => [
+            'manager' => CAP_ALLOW,
+        ],
+    'clonepermissionsfrom' => 'moodle/my:manageblocks',
+    ],
+];

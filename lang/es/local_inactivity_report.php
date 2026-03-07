@@ -26,3 +26,8 @@
 defined('MOODLE_INTERNAL') || die();
 
 $string['pluginname'] = 'Reporte de Inactividad';
+$string['selectedcourse'] = 'Seleccionar Curso';
+$string['lastaccessbefore'] = 'Último Acceso';
+$string['generate'] = 'Generar Reporte';
+$string['nousersfound'] = 'No se encontraron usuarios inactivos para los criterios seleccionados.';
+$string['dayselapsed'] = 'Días Transcurridos Desde el Último Acceso';
