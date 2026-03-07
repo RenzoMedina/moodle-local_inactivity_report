@@ -37,7 +37,7 @@ use local_inactivity_report\form\reportform;
 $mform = new reportform();
 $reportlist = [];
 $page = optional_param('page', 0, PARAM_INT);
-$perpage = 8;
+$perpage = (int)get_config('local_inactivity_report', 'maxresults') ?: 8;
 $paginationbar = new paging_bar(0, 0, $perpage, $PAGE->url);
 $total = 0;
 $typecourse = optional_param('type', 0, PARAM_INT);
@@ -54,13 +54,13 @@ if ($mform->is_cancelled()) {
     $lastacces = $data->filterdate;
 }
 
-if ($typecourse && $lastacces) { 
-    $params = ['filterdate' => $lastacces, 'courseid' => $typecourse];
-    $sql = "SELECT u.id, u.firstname, u.lastname, u.email, c.fullname AS coursename, ul.timeaccess
+$sql = "SELECT u.id, u.firstname, u.lastname, u.email, c.fullname AS coursename, ul.timeaccess
         FROM {user} u
         JOIN {user_lastaccess} ul ON ul.userid = u.id
         JOIN {course} c ON c.id = ul.courseid
         WHERE ul.timeaccess < :filterdate AND ul.courseid = :courseid ORDER BY ul.timeaccess ASC";
+if ($typecourse && $lastacces) { 
+    $params = ['filterdate' => $lastacces, 'courseid' => $typecourse];
     $total = $DB->count_records_sql(
             "SELECT COUNT(*)
             FROM {user} u
@@ -82,7 +82,35 @@ if ($typecourse && $lastacces) {
     }
     $paginationbar = new paging_bar($total, $page, $perpage, new moodle_url('/local/inactivity_report/index.php', ['type' => $typecourse, 'filterdate' => (int)$lastacces]));
 }
-
+$download = optional_param('download', '', PARAM_TEXT);
+if (!empty($download) && $typecourse && $lastacces) {
+    $validformats = ['csv', 'excel', 'ods'];
+    if (!in_array($download, $validformats)) {
+        $download = 'csv';
+    }
+    $params = ['filterdate' => $lastacces, 'courseid' => $typecourse];
+    $report = $DB->get_records_sql($sql, $params);
+    $exportdata = [];
+    foreach ($report as $record) {
+        $exportdata[] = [
+            'fullname' => $record->firstname." ".$record->lastname,
+            'email' => $record->email,
+            'coursename' => $record->coursename,
+            'lastaccess' => userdate($record->timeaccess, get_string('strftimedatetime', 'langconfig')),
+            'dayselapsed' => (int)((time() - $record->timeaccess) / DAYSECS),
+        ];
+    }
+    $columns = [
+        'fullname' => get_string('fullname'),
+        'email' => get_string('email'),
+        'coursename' => get_string('coursename', 'local_inactivity_report'),
+        'lastaccess' => get_string('lastaccess'),
+        'dayselapsed' => get_string('dayselapsed', 'local_inactivity_report'),
+    ];
+    $filename = 'inactivity_report_' . date('Ymd');
+    \core\dataformat::download_data($filename, $download, $columns, $exportdata);
+    exit;
+}
 echo $OUTPUT->header();
 
 $templatedata = [
@@ -91,6 +119,7 @@ $templatedata = [
     'report' => $reportlist ?? [],
     'haspagination' => $total > $perpage,
     'pagination' => $OUTPUT->render($paginationbar),
+    'download_file' => (new moodle_url('/local/inactivity_report/index.php', ['type' => $typecourse, 'filterdate' => (int)$lastacces, 'download' => 'csv']))->out(false),
 ];
 echo $OUTPUT->render_from_template('local_inactivity_report/main', $templatedata);
 echo $OUTPUT->footer();

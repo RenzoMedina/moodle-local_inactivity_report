@@ -26,16 +26,28 @@
 defined('MOODLE_INTERNAL') || die();
 
 if ($hassiteconfig) {
-    $settings = new admin_settingpage('local_inactivity_report_settings', new lang_string('pluginname', 'local_inactivity_report'));
+    $settings = new admin_settingpage('local_inactivity_report_settings', get_string('pluginname', 'local_inactivity_report'));
 
     // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedIf
     if ($ADMIN->fulltree) {
         // TO-DO: Define actual plugin settings page and add it to the tree - {@link https://docs.moodle.org/dev/Admin_settings}.
+
+        // Example setting - a text field. this value is max number of results to show in the report.
+        $settings->add(new admin_setting_configtext(
+            'local_inactivity_report/maxresults',
+            get_string('maxresults', 'local_inactivity_report'),
+            get_string('maxresults_desc', 'local_inactivity_report'),
+            8,
+            PARAM_INT
+        ));
     } 
+    // Add the settings page to the admin tree under 'reports'.
    $ADMIN->add('reports', new admin_externalpage(
         'local_inactivity_report',
         get_string('pluginname', 'local_inactivity_report'),
         new moodle_url('/local/inactivity_report/index.php'),
         'moodle/site:config'
     ));
+    // Add the settings page to the admin tree under 'localplugins'.
+    $ADMIN->add('localplugins', $settings);
 }
