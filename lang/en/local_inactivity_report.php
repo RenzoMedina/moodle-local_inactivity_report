@@ -31,3 +31,4 @@ $string['lastaccessbefore'] = 'Last Access Before';
 $string['generate'] = 'Generate Report';
 $string['nousersfound'] = 'No inactive users found for the selected criteria.';
 $string['dayselapsed'] = 'Days Elapsed Since Last Access';
+$string['downloadexcel'] = 'Download Excel Report';

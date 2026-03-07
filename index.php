@@ -35,39 +35,62 @@ $PAGE->set_heading(get_string('pluginname', 'local_inactivity_report'));
 use local_inactivity_report\form\reportform;
 
 $mform = new reportform();
-$report = [];
 $reportlist = [];
+$page = optional_param('page', 0, PARAM_INT);
+$perpage = 8;
+$paginationbar = new paging_bar(0, 0, $perpage, $PAGE->url);
+$total = 0;
+$typecourse = optional_param('type', 0, PARAM_INT);
+$lastacces = 0;
+
+if (!isset($_POST['filterdate']) ) {
+    $lastacces = optional_param('filterdate', 0, PARAM_INT);
+}
+
 if ($mform->is_cancelled()) {
     redirect(new moodle_url('/admin/search.php#linkreports'));
 } else if ($data = $mform->get_data()) {
     $typecourse = $data->type;
     $lastacces = $data->filterdate;
-    
-    $report = $DB->get_records_sql(
-        "SELECT u.id, u.firstname, u.lastname, u.email, c.fullname AS coursename, FROM_UNIXTIME(ul.timeaccess) AS lastaccess
+}
+
+if ($typecourse && $lastacces) { 
+    $params = ['filterdate' => $lastacces, 'courseid' => $typecourse];
+    $sql = "SELECT u.id, u.firstname, u.lastname, u.email, c.fullname AS coursename, ul.timeaccess
         FROM {user} u
         JOIN {user_lastaccess} ul ON ul.userid = u.id
         JOIN {course} c ON c.id = ul.courseid
-        WHERE ul.timeaccess < :filterdate AND ul.courseid = :courseid",
-        ['filterdate' => $lastacces, 'courseid' => $typecourse]
-    );
-}
-
-foreach ($report as $record) {
+        WHERE ul.timeaccess < :filterdate AND ul.courseid = :courseid ORDER BY ul.timeaccess ASC";
+    $total = $DB->count_records_sql(
+            "SELECT COUNT(*)
+            FROM {user} u
+            JOIN {user_lastaccess} ul ON ul.userid = u.id
+            JOIN {course} c ON c.id = ul.courseid
+            WHERE ul.timeaccess < :filterdate AND ul.courseid = :courseid",
+            ['filterdate' => $lastacces, 'courseid' => $typecourse]
+            );
+    $report = $DB->get_records_sql($sql, $params, $page * $perpage, $perpage);
+    
+    foreach ($report as $record) {
     $reportlist[] = [
         'fullname' => $record->firstname." ".$record->lastname,
         'email' => $record->email,
         'coursename' => $record->coursename,
-        'lastaccess' => userdate(strtotime($record->lastaccess), get_string('strftimedatetime', 'langconfig')),
+        'lastaccess' => userdate($record->timeaccess, get_string('strftimedatetime', 'langconfig')),
         'dayselapsed' => (int)((time() - $record->timeaccess) / DAYSECS),
-    ];
+        ];
+    }
+    $paginationbar = new paging_bar($total, $page, $perpage, new moodle_url('/local/inactivity_report/index.php', ['type' => $typecourse, 'filterdate' => (int)$lastacces]));
 }
+
 echo $OUTPUT->header();
 
 $templatedata = [
     'backurl' => (new moodle_url('/admin/search.php#linkreports'))->out(false),
     'reportform' => $mform->render(),
     'report' => $reportlist ?? [],
+    'haspagination' => $total > $perpage,
+    'pagination' => $OUTPUT->render($paginationbar),
 ];
 echo $OUTPUT->render_from_template('local_inactivity_report/main', $templatedata);
 echo $OUTPUT->footer();
