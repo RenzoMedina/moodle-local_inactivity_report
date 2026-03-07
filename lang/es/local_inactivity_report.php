@@ -15,27 +15,14 @@
 // along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 /**
- * Plugin administration pages are defined here.
+ * Plugin strings are defined here.
  *
  * @package     local_inactivity_report
- * @category    admin
+ * @category    string
  * @copyright   2026 Renzo Medina <medinast30@gmail.com>
  * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 defined('MOODLE_INTERNAL') || die();
 
-if ($hassiteconfig) {
-    $settings = new admin_settingpage('local_inactivity_report_settings', new lang_string('pluginname', 'local_inactivity_report'));
-
-    // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedIf
-    if ($ADMIN->fulltree) {
-        // TO-DO: Define actual plugin settings page and add it to the tree - {@link https://docs.moodle.org/dev/Admin_settings}.
-    } 
-   $ADMIN->add('reports', new admin_externalpage(
-        'local_inactivity_report',
-        get_string('pluginname', 'local_inactivity_report'),
-        new moodle_url('/local/inactivity_report/index.php'),
-        'moodle/site:config'
-    ));
-}
+$string['pluginname'] = 'Reporte de Inactividad';
