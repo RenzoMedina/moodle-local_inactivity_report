@@ -26,6 +26,7 @@ require_once(__DIR__ . '/../../config.php');
 
 require_login();
 require_capability('moodle/site:config', context_system::instance());
+require_capability('local/inactivity_report:view', context_system::instance());
 
 $PAGE->set_context(context_system::instance());
 $PAGE->set_url(new moodle_url('/local/inactivity_report/index.php'));
@@ -59,7 +60,11 @@ $sql = "SELECT u.id, u.firstname, u.lastname, u.email, c.fullname AS coursename,
         JOIN {user_lastaccess} ul ON ul.userid = u.id
         JOIN {course} c ON c.id = ul.courseid
         WHERE ul.timeaccess < :filterdate AND ul.courseid = :courseid ORDER BY ul.timeaccess ASC";
-if ($typecourse && $lastacces) { 
+if ($typecourse && $lastacces) {
+    $coursecontext = context_course::instance($typecourse);
+    if (!has_capability('moodle/course:view', $coursecontext)) {
+        throw new moodle_exception('nopermissions', 'error');
+    }
     $params = ['filterdate' => $lastacces, 'courseid' => $typecourse];
     $total = $DB->count_records_sql(
             "SELECT COUNT(*)
